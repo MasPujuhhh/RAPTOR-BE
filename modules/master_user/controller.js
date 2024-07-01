@@ -81,7 +81,7 @@ class Controller{
 
     static async all(req, res){
         try {
-            let user = req.user
+        let user = req.user
 
             let list = ['PDL','HDI','AAF']
             if (!list.includes(req.user.nama)) {
