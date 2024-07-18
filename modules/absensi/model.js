@@ -13,14 +13,29 @@ const Absensi = sequelize.define('absensi', {
         user_id: {
           type: DataTypes.STRING,
         },
-        foto_absen: {
+        foto_dokumen: {
           type: DataTypes.STRING,
+        },
+        foto_absen_pagi: {
+          type: DataTypes.STRING,
+        },
+        foto_absen_sore: {
+          type: DataTypes.STRING,
+        },
+        check_in: {
+          type: DataTypes.DATE,
+        },
+        check_out: {
+          type: DataTypes.DATE,
+        },
+        koordinat: {
+          type: DataTypes.JSON,
         },
         jadwal: {
           type: DataTypes.DATE,
         },
-        keterangan: {
-          type: DataTypes.ENUM('masuk','wfh','izin/sakit')
+        status: {
+          type: DataTypes.ENUM('masuk','wfh','izin','sakit')
         }
       }, {
         freezeTableName:true,

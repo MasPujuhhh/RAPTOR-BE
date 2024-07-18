@@ -33,6 +33,29 @@ class Controller{
         }
     }
 
+    static async all(req, res){
+        try {
+
+            let filter = ''
+            let nama = req.query.nama || null
+
+            if (nama) {
+                filter += `and nama ilike '%${nama}%'`
+            }
+            const hasil = await sequelize.query(`SELECT * from master_report_label where "deletedAt" is null ${filter} order by nama `, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
     static async list(req, res){
         try {
             const per_page = req.query.per_page || 10

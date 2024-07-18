@@ -91,12 +91,42 @@ class Controller{
             let filter = ''
             let head = user.nama
 
-            console.log(head)
-
             if (head) {
                 filter += `and head = '${head}'`
             }
             const hasil = await sequelize.query(`select mu.*, mr.nama , mr.alias, mr.head  from master_user mu 
+                join master_role mr on mr.id  = mu.role_id
+                where mu."deletedAt" isnull ${filter} order by mu.nama_lengkap`, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok, {req: req}))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
+    static async allByDivision(req, res){
+        try {
+        let user = req.user
+
+            let list = ['PDL','HDI','AAF']
+            if (!list.includes(req.user.nama)) {
+                user.nama = null
+            }
+
+            let filter = ''
+            let head = user.nama
+
+            console.log(head)
+            if (head) {
+                filter += `and (head = '${head}' or mu.id = '${user.id}')`
+            }
+            const hasil = await sequelize.query(`select mu.*, mr.nama , mr.alias, mr.head from master_user mu 
                 join master_role mr on mr.id  = mu.role_id
                 where mu."deletedAt" isnull ${filter} order by mu.nama_lengkap`, { type: QueryTypes.SELECT });
             res

@@ -12,26 +12,90 @@ import Absensi from '../absensi/model.js';
 import User from '../master_user/model.js';
 
 class CommentContreller{
-    static async dashboard(req, res){
+    static async dashboardAdmin(req, res){
         try {
-            let {tugas_id, comment} = req.body
-            const user_id = req.user.id
 
-            const tugas = await Tugas.findByPk(tugas_id)
-            if(!tugas){
-                const err = new Error('Tugas tidak ada')
-                err.code = HttpStatusCode.NotFound
-                throw err
+            let me = req.user
+
+            let list = ['PDL','HDI','AAF']
+            if (!list.includes(me.nama)) {
+                me.nama = null
             }
-            if(!comment){
-                const err = new Error('Komentar tidak boleh kosong/ harus diisi')
-                err.code = HttpStatusCode.BadRequest
-                throw err
+
+            let heads = ''
+            let absensi = ''
+            let daily = ''
+            let head = me.nama
+            let jadwal = req.query.jadwal || null
+
+            if (head) {
+                heads += `and (mr.head = '${head}' or mu.id = '${me.id}')`
             }
-            const hasil = await Comment.create({id:nanoid(), user_id, tugas_id, comment})
+            if (jadwal) {
+                absensi += `and TO_CHAR(a.jadwal, 'YYYY-MM-DD') ILIKE '%${jadwal}%'`
+            }
+            if (jadwal) {
+                daily += `and TO_CHAR(dr.jadwal, 'YYYY-MM-DD') ILIKE '%${jadwal}%'`
+            }
+
+            let result = {}
+
+            const jmlh_user = await sequelize.query(`select count(*) as jml_user from master_user mu
+                join master_role mr  on mu.role_id = mr.id
+                where mu."deletedAt" isnull ${heads}`, { type: QueryTypes.SELECT });
+
+            const jml_tugas = await sequelize.query(`select count(t.id) as jumlah_sub_tugas, t.id from tugas t 
+                join pool_tugas_user ptu on ptu.tugas_id = t.id
+                join master_user mu on mu.id = ptu.user_id 
+                join master_role mr on mr.id  = mu.role_id 
+                where t."deletedAt" isnull ${heads}
+                group by t.id`, { type: QueryTypes.SELECT });
+            
+            const jml_tugas_done = await sequelize.query(`select count(t.id) as jumlah_sub_tugas, t.id from tugas t 
+                join pool_tugas_user ptu on ptu.tugas_id = t.id
+                join master_user mu on mu.id = ptu.user_id 
+                join master_role mr on mr.id  = mu.role_id 
+                where t."deletedAt" isnull and t.is_done is true ${heads}
+                group by t.id`, { type: QueryTypes.SELECT });
+
+            const jml_daily_report = await sequelize.query(`select * from daily_report dr
+                join master_user mu on mu.id = dr.user_id 
+                join master_role mr on mr.id  = mu.role_id 
+                where dr."deletedAt" isnull is true ${heads}`, { type: QueryTypes.SELECT });
+                
+            const data_jadwal = await sequelize.query(`select a.* from absensi a 
+                join master_user mu on mu.id = a.user_id 
+                join master_role mr on mr.id  = mu.role_id 
+                where a."deletedAt" is null ${absensi} ${heads}`, { type: QueryTypes.SELECT });
+                    
+                    
+            const daily_report = await sequelize.query(`select dr.id, t.judul, mu.nama_lengkap, mr.alias, dr.deskripsi, dr."createdAt" from daily_report dr 
+                join master_user mu on mu.id = dr.user_id 
+                join master_role mr on mr.id = mu.role_id 
+                join tugas t on t.id = dr.tugas_id 
+                where dr."deletedAt" isnull ${daily} ${heads}
+                order by dr."createdAt" desc limit 7`, { type: QueryTypes.SELECT });
+            
+            const data_absensi = await sequelize.query(`select sum(case when status = 'masuk' and check_in notnull then 1 else 0 end) as masuk, 
+                sum(case when status = 'wfh' and check_in notnull then 1 else 0 end) as wfh ,
+                sum(case when status = 'izin' and check_in notnull  then 1 else 0 end) as izin,
+                sum(case when status = 'sakit' and check_in notnull  then 1 else 0 end) as sakit,
+                sum(case when status isnull and check_in isnull then 1 else 0 end) as tanpa_keterangan
+                from absensi a join master_user mu on mu.id = a.user_id 
+                join master_role mr on mr.id  = mu.role_id
+                where a."deletedAt" isnull ${absensi} ${heads}`, { type: QueryTypes.SELECT });
+
+            result.jml_user = jmlh_user[0].jml_user
+            result.jml_tugas = jml_tugas.length
+            result.jml_tugas_done = jml_tugas_done.length
+            result.jml_daily_report = jml_daily_report.length
+            result.jadwal = data_jadwal.length
+            result.daily_report = daily_report
+            result.absensi = data_absensi[0]
+
             res
             .status(HttpStatusCode.Ok)
-            .json(results(hasil, HttpStatusCode.Ok))
+            .json(results(result, HttpStatusCode.Ok))
         } catch (err) {
             console.log(err)
         err.code =
@@ -58,8 +122,8 @@ class CommentContreller{
                 err.code = HttpStatusCode.NotFound
                 throw err
             }
-
-            // const users = await User.findAll({where:{is_active:false}})
+        
+            console.log(jadwal)
             const users = await sequelize.query(`SELECT id from master_user mu where "deletedAt" isnull and is_active is true`, { type: QueryTypes.SELECT });
 
             let payload = []
@@ -87,7 +151,7 @@ class CommentContreller{
             }
 
             const result = await Absensi.bulkCreate(payload)            
-            await DailyReport.bulkCreate(payload)            
+            // await DailyReport.bulkCreate(payload)            
             
             res
             .status(HttpStatusCode.Ok)

@@ -51,12 +51,6 @@ class Controller{
           }
       
           const files = req.files || [];
-        //   if (files.length === 0) {
-        //     const error = new Error('Tidak ada gambar');
-        //     error.code = HttpStatusCode.BadRequest;
-        //     throw error;
-        //   }
-      
           const pengumuman = await Pengumuman.create({
             id: nanoid(),
             judul,
@@ -87,18 +81,19 @@ class Controller{
       
           for (let i = 0; i < files.length; i++){
             const filename = `${Date.now()}XXX${pengumuman.judul.replace(/[^a-zA-Z0-9]/g, '_')}${i+1}.${files[i].mimetype.split('/')[1]}`;
-            const filepath = `/assets/img/${filename}`
+            const filepath = `assets/img/${filename}`
       
             try {
               fs.writeFileSync(filepath, files[i].buffer);
               payload_file.push({
                 id: nanoid(),
-                file: filepath,
+                file: `/assets/img/${filename}`,
                 pengumuman_id: pengumuman.id,
               });
             } catch (fileErr) {
-              console.error(`Error writing file ${filepath}:`, fileErr);
-              throw fileErr;
+              const error = new Error(`Error writing file ${filepath}:`, fileErr);
+              error.code = HttpStatusCode.BadRequest;
+              throw error;
             }
           }
       
@@ -139,6 +134,56 @@ class Controller{
             res
             .status(HttpStatusCode.Ok)
             .json(results(hasils, HttpStatusCode.Ok, {req: req}))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+    
+    static async allByToken(req, res){
+        try {
+          let me = req.user
+            const hasil = await sequelize.query(`
+              select p.*, ppu.user_id, ppu.is_read  from pengumuman p 
+              join pool_pengumuman_user ppu on ppu.pengumuman_id = p.id
+              where p."deletedAt" isnull and ppu.user_id = '${me.id}'
+              order by p."createdAt" desc`, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok, {req: req}))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
+    static async readPengumuman(req, res){
+        try {
+          let me = req.user
+          let id = req.params.id
+          const pengumuman = await Pengumuman.findByPk(id)
+          if (!pengumuman) {
+              const err = new Error('Pengumuman tidak ditemukan!!')
+              err.code = HttpStatusCode.NotFound
+              throw err
+          }
+
+          const pengumuman_detail = await PoolPengumumansUser.findOne({where:{user_id:me.id, pengumuman_id:pengumuman.id}})
+            // await pengumuman.update({is_read:true})
+            console.log(pengumuman_detail)
+            await pengumuman_detail.update({is_read:true})
+            
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(pengumuman_detail, HttpStatusCode.Ok, {req: req}))
         } catch (err) {
             console.log(err)
             err.code =

@@ -10,6 +10,7 @@ import dashboard from '../modules/dashboard/router.js'
 import absensi from '../modules/absensi/router.js'
 import roles from '../modules/master_role/router.js'
 import pengumuman from '../modules/pengumuman/router.js'
+import daily from '../modules/daily_report/router.js'
 
 // import schedule from '../modules/schedule/router.js'
 // import todo from '../modules/todo/router.js'
@@ -30,6 +31,7 @@ router.use('/sub_tugas', sub_tugas)
 router.use('/comment', comment)
 router.use('/pengumuman', pengumuman)
 router.use('/absensi', absensi)
+router.use('/daily', daily)
 
 
 router.use('/dashboard', dashboard)

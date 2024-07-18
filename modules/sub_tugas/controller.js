@@ -173,9 +173,9 @@ class Controller{
 
             await t.commit()
 
-            const cek = await sequelize.query(`SELECT COUNT(*) AS total, COUNT(CASE WHEN status = 'ok' THEN 1 END) AS ok FROM sub_tugas WHERE "deletedAt" IS NULL and tugas_id = ?`, { replacements:[sub_tugas.tugas_id],type: QueryTypes.SELECT });
+            const cek = await sequelize.query(`SELECT COUNT(*) AS total, COUNT(CASE WHEN is_done = true THEN 1 END) AS done FROM sub_tugas WHERE "deletedAt" IS NULL and tugas_id = ?`, { replacements:[sub_tugas.tugas_id],type: QueryTypes.SELECT });
             console.log(cek)
-            if (cek[0].total == cek[0].ok) {
+            if (cek[0].total == cek[0].done) {
                 await tugas.update({is_done:true})
             }
 

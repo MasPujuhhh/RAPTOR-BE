@@ -78,6 +78,139 @@ class Controller{
         }
     }
 
+    static async all(req, res){
+        try {            
+            const hasil = await sequelize.query(
+                `select t.* from tugas t 
+                where t."deletedAt" isnull
+                group by t.id`, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
+    static async allByToken(req, res){
+        try {
+            const me = req.user
+
+            const hasil = await sequelize.query(
+                `select t.*, st.user_id from tugas t 
+                join sub_tugas st on st.tugas_id = t.id 
+                where t."deletedAt" isnull and st.user_id = '${me.id}'
+                group by t.id, st.user_id`, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+    static async allByDivision(req, res){
+        try {
+            const user = req.user
+
+            let filter = ''
+
+            let list = ['PDL','HDI','AAF']
+            if (!list.includes(req.user.nama)) {
+                user.nama = null
+            }
+
+            let head = user.nama
+
+            console.log(head)
+            if (head) {
+                filter += `and (head = '${head}' or mu.id = '${user.id}')`
+            }
+
+            const hasil = await sequelize.query(
+                `select t.* from tugas t 
+                join sub_tugas st ON st.tugas_id = t.id 
+                join master_user mu on mu.id = st.user_id 
+                join master_role mr on mr.id = mu.role_id 
+                where t."deletedAt" isnull ${filter}
+                group by t.id`, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
+    static async listByToken(req, res){
+        try {
+            const per_page = req.query.per_page || 10
+            const page = req.query.page || 1
+            const judul = req.query.judul || null
+            const tanggal_mulai = req.query.tanggal_mulai || null
+            const tanggal_selesai = req.query.tanggal_selesai || null
+            const offset = (page - 1) * per_page
+            let me = req.user
+
+            let filter = ''
+
+            if (judul) {
+                filter += `and t.judul ilike '%${judul}%'`
+            }
+            if (tanggal_mulai) {
+                filter += `and date(t.tanggal_mulai) >= '${tanggal_mulai}'`
+            }
+            if (tanggal_selesai) {
+                filter += `and date(t.tanggal_selesai) <= '${tanggal_selesai}'`
+            }
+
+            const count = await sequelize.query(
+                `select t.*, st.user_id from tugas t 
+                join sub_tugas st on st.tugas_id = t.id 
+                where t."deletedAt" isnull and st.user_id = '${me.id}'
+                ${filter}
+                group by t.id, st.user_id`, { type: QueryTypes.SELECT });
+
+            const hasil = await sequelize.query(
+                `select t.*, st.user_id from tugas t 
+                join sub_tugas st on st.tugas_id = t.id 
+                where t."deletedAt" isnull and st.user_id = '${me.id}'
+                ${filter}
+                group by t.id, st.user_id
+                limit ${per_page} offset ${offset}`, { type: QueryTypes.SELECT });
+
+            const hasils = {
+                count:count.length,
+                rows:hasil
+            }
+
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasils, HttpStatusCode.Ok, {req}))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
     static async list(req, res){
         try {
             const per_page = req.query.per_page || 10
@@ -98,10 +231,8 @@ class Controller{
             let filter = ''
             let head = user.nama
 
-            // console.log(head)
-
             if (head) {
-                heads += `and mr.head ilike '%${head}%'`
+                heads += `and (mr.head = '${head}' or mu.id = '${user.id}')`
             }
             if (judul) {
                 filter += `and t.judul ilike '%${judul}%'`
@@ -199,10 +330,19 @@ class Controller{
                 where t.id = ? and mu."deletedAt" isnull
                 `, { replacements:[id],type: QueryTypes.SELECT });
             tugas.sub_tugas = await sequelize.query(
-                `select st.id as sub_tugas_id, st.category_id, st.judul, date(st.tanggal_selesai) as tanggal_selesai, coalesce(st.status,'') as status, st.user_id, mu.nama_lengkap, mu.foto_profile, st.is_done, st.alasan  from sub_tugas st 
+                `select st.id as sub_tugas_id, st.category_id, mk.nama as nama_kategori, mk.deskripsi as deskripsi_kategori, st.judul, date(st.tanggal_selesai) as tanggal_selesai, coalesce(st.status,'') as status, st.user_id, mu.nama_lengkap, mu.foto_profile, st.is_done, st.alasan  from sub_tugas st 
                 join master_user mu on mu.id = st.user_id
+                join master_tugas_category mk on mk.id = st.category_id
                 where st.tugas_id = ? and st."deletedAt" isnull
                 order by st."createdAt" `, { replacements:[id],type: QueryTypes.SELECT });
+            
+            let count = 0
+            for (let i = 0; i < tugas.sub_tugas.length; i++) {
+                if (tugas.sub_tugas[i].is_done) {
+                    count ++
+                }
+            }
+            tugas.sub_tugas_progress = `${((count / tugas.sub_tugas.length) * 100).toFixed(2)}%`
 
             tugas.daily_reports = []
             // tugas.daily_reports = await sequelize.query(

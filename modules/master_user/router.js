@@ -8,6 +8,7 @@ const router = express.Router()
 router.post('/login', controller.login);
 router.post('/create_user', controller.createUser);
 router.get('/all', auth.verifikasiToken, controller.all)
+router.get('/all_by_division', auth.verifikasiToken, controller.allByDivision)
 router.get('/all-role', auth.verifikasiToken, controller.allRole)
 router.get('/list', auth.verifikasiToken, controller.list)
 router.get('/detail_by_id/:id', controller.detailById)
