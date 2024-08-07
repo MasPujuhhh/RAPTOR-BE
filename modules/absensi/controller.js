@@ -49,15 +49,29 @@ class AbsensiController{
                     }
 
                     const foto = req.file ? req.file.buffer : null;
-                    if (!foto) {
-                        const error = new Error('Tidak ada gambar');
-                        error.code = HttpStatusCode.BadRequest;
-                        throw error;
+                    if ((status != 'izin' && status != 'sakit')) {
+                        if (!foto) {
+                            const error = new Error('Tidak ada gambar');
+                            error.code = HttpStatusCode.BadRequest;
+                            throw error;
+                        }   
+                    }
+
+                    if (check_in) {
+                        if (!foto) {
+                            const error = new Error('Tidak ada gambar');
+                            error.code = HttpStatusCode.BadRequest;
+                            throw error;
+                        }  
                     }
                     
-                    const compressedImageBuffer = await sharp(foto)
-                    .resize(400, 400)
-                    .toBuffer();
+                    let compressedImageBuffer = null
+                    if (foto) {
+                        compressedImageBuffer = await sharp(foto)
+                        .resize(400, 400)
+                        .toBuffer();
+                    }
+                    
 
                     const filename = absen.id + '-' + Date.now() + '.jpg';
                         
@@ -86,7 +100,7 @@ class AbsensiController{
                         payload.check_out = check_out
                         if (status == 'masuk' || status == 'wfh') {
                             fs.writeFileSync(`assets/img/absen-sore-${filename}`, compressedImageBuffer);
-                            payload.foto_absen_sore = `/assets/img/absensi-sore-${filename}`
+                            payload.foto_absen_sore = `/assets/img/absen-sore-${filename}`
                         }
                     }
 

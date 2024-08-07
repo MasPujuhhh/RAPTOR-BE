@@ -25,6 +25,44 @@ class Controller{
         }
     }
 
+    static async allByDivision(req, res){
+        try {
+            // let filter = ''
+            // let nama = req.query.nama || null
+
+            // if (nama) {
+            //     filter += `and nama ilike '%${nama}%'`
+            // }
+
+            let user = req.user
+
+            let list = ['PDL','HDI','AAF']
+            if (!list.includes(req.user.nama)) {
+                user.nama = null
+            }
+
+            let filter = ''
+            let head = user.nama
+
+            console.log(head)
+            if (head) {
+                filter += `and (head = '${head}')`
+            }
+
+            const hasil = await sequelize.query(`SELECT mr.id, nama, alias, head from master_role mr where mr."deletedAt" is null ${filter} order by mr.nama `, { type: QueryTypes.SELECT });
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(hasil, HttpStatusCode.Ok, {req: req}))
+        } catch (err) {
+            console.log(err)
+            err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        } 
+    }
+
     static async all(req, res){
         try {
             let filter = ''

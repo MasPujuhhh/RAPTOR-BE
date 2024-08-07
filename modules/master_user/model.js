@@ -24,16 +24,7 @@ const User = sequelize.define('master_user', {
         nama_lengkap: {
           type: DataTypes.STRING,
         },
-        telepon: {
-            type: DataTypes.STRING,
-        },
         foto_profile: {
-          type: DataTypes.STRING,
-        },
-        jenis_bank: {
-          type: DataTypes.STRING,
-        },
-        no_rek: {
           type: DataTypes.STRING,
         },
         role_id: {
