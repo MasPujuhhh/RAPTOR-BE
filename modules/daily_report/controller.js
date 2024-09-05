@@ -175,6 +175,7 @@ class DailyReport{
             const tanggal_selesai = req.query.tanggal_selesai || null
             const user_id = req.query.user_id || null
             const judul_tugas = req.query.judul_tugas || null
+            const label_id = req.query.label_id || null
 
             const user = await User.findByPk(me.id)
             if(!user){
@@ -206,6 +207,10 @@ class DailyReport{
 
             if (head) {
                 filter += `and (head = '${head}' or mu.id = '${me.id}')`
+            }
+
+            if (label_id) {
+                filter += `and mrl.id = '${label_id}' ` 
             }
             
             const count = await sequelize.query(`select dr.id as daily_report_id, dr.jadwal, mu.id as user_id, mu.nama_lengkap, mr.nama as nama_role, t.judul, mrl.nama as nama_label, mrl.color, dr.deskripsi from daily_report dr 

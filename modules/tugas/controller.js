@@ -269,10 +269,14 @@ class Controller{
                 LEFT JOIN (SELECT tugas_id, COUNT(id) AS jumlah_tugas FROM sub_tugas where "deletedAt" isnull GROUP BY tugas_id) st ON t.id = st.tugas_id
                 LEFT JOIN (SELECT tugas_id, COUNT(id) AS jumlah_comment FROM "comment" where "deletedAt" isnull GROUP BY tugas_id) c ON t.id = c.tugas_id
                 LEFT JOIN (Select tugas_id, count(id) as jumlah_user from pool_tugas_user where "deletedAt" isnull GROUP BY tugas_id) ptu ON t.id = ptu.tugas_id
-                where t."deletedAt" isnull ${filter} order by t."createdAt" desc limit ${per_page} offset ${offset};`, { type: QueryTypes.SELECT });
+                where t."deletedAt" isnull ${filter} order by t."createdAt" desc`, { type: QueryTypes.SELECT });
+
+
+            console.log(count)
 
             for (let i = 0; i < hasil.length; i++) {
                 for (let j = 0; j < count.length; j++) {
+                    console.log(hasil[i].id , count[j].id, hasil[i].id == count[j].id)
                     if (hasil[i].id == count[j].id) {
                         hasil[i].tanggal_mulai = count[j].tanggal_mulai
                         hasil[i].tanggal_selesai = count[j].tanggal_selesai
@@ -334,7 +338,7 @@ class Controller{
                 join master_user mu on mu.id = st.user_id
                 join master_tugas_category mk on mk.id = st.category_id
                 where st.tugas_id = ? and st."deletedAt" isnull
-                order by st."createdAt" `, { replacements:[id],type: QueryTypes.SELECT });
+                order by st."createdAt"`, { replacements:[id],type: QueryTypes.SELECT });
             
             let count = 0
             for (let i = 0; i < tugas.sub_tugas.length; i++) {
@@ -351,7 +355,7 @@ class Controller{
             //     order by st.count `, { replacements:[id],type: QueryTypes.SELECT });   
 
             tugas.comments = await sequelize.query(
-                `select c.id as comment_id, mu.nama_lengkap, mu.foto_profile, mr.nama as nama_role, c."comment", c."createdAt" from "comment" c 
+                `select c.id as comment_id, mu.nama_lengkap, mu.foto_profile, mr.nama as nama_role, c."comment", c.file, c."createdAt" from "comment" c 
                 join master_user mu ON mu.id = c.user_id 
                 join master_role mr on mr.id = mu.role_id 
                 where c."deletedAt" is null and c.tugas_id = ?

@@ -5,6 +5,7 @@ const router = express.Router()
 
 
 router.get('/', auth.verifikasiToken, controller.dashboardAdmin)
+router.get('/change_label', auth.verifikasiToken, controller.changeLabel)
 router.post('/open_schedule', auth.verifikasiToken, controller.openSchedule)
 
 // router.post('/add', auth.verifikasiToken, controller.addComment)

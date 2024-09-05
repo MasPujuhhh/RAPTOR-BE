@@ -4,6 +4,7 @@ import auth from '../../middleware/auth.js'
 const router = express.Router()
 
 router.post('/add', auth.verifikasiToken, controller.addComment)
+router.post('/upload_image', auth.verifikasiToken, controller.uploadImage)
 router.put('/edit/:comment_id', auth.verifikasiToken, controller.editComment);
 router.delete('/delete/:comment_id', auth.verifikasiToken, controller.deleteComment);
 

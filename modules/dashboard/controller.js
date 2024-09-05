@@ -69,12 +69,13 @@ class CommentContreller{
                 where a."deletedAt" is null ${absensi} ${heads}`, { type: QueryTypes.SELECT });
                     
                     
-            const daily_report = await sequelize.query(`select dr.id, t.judul, mu.nama_lengkap, mr.alias, dr.deskripsi, dr."createdAt" from daily_report dr 
+            const daily_report = await sequelize.query(`select dr.id, t.judul, mu.nama_lengkap, mr.alias, dr.deskripsi, dr."createdAt", mrl.nama, mrl.color  from daily_report dr 
                 join master_user mu on mu.id = dr.user_id 
                 join master_role mr on mr.id = mu.role_id 
+                join master_report_label mrl on mrl.id = dr.label_id 
                 join tugas t on t.id = dr.tugas_id 
                 where dr."deletedAt" isnull ${daily} ${heads}
-                order by dr."createdAt" desc limit 7`, { type: QueryTypes.SELECT });
+                order by dr."createdAt" desc`, { type: QueryTypes.SELECT });
             
             const data_absensi = await sequelize.query(`select sum(case when status = 'masuk' and check_in notnull then 1 else 0 end) as masuk, 
                 sum(case when status = 'wfh' and check_in notnull then 1 else 0 end) as wfh ,
@@ -84,6 +85,8 @@ class CommentContreller{
                 from absensi a join master_user mu on mu.id = a.user_id 
                 join master_role mr on mr.id  = mu.role_id
                 where a."deletedAt" isnull ${absensi} ${heads}`, { type: QueryTypes.SELECT });
+
+                
 
             result.jml_user = jmlh_user[0].jml_user
             result.jml_tugas = jml_tugas.length
@@ -96,6 +99,64 @@ class CommentContreller{
             res
             .status(HttpStatusCode.Ok)
             .json(results(result, HttpStatusCode.Ok))
+        } catch (err) {
+            console.log(err)
+        err.code =
+            typeof err.code !== 'undefined' && err.code !== null
+            ? err.code
+            : HttpStatusCode.InternalServerError
+        res.status(err.code).json(results(null, err.code, { err }))
+        }
+    }
+
+
+    static async changeLabel(req, res){
+        try {
+
+            let me = req.user
+
+            let list = ['PDL','HDI','AAF']
+            if (!list.includes(me.nama)) {
+                me.nama = null
+            }
+
+            let heads = ''
+            let absensi = ''
+            let daily = ''
+            let labels = ''
+            let head = me.nama
+            let nama_label = req.query.nama_label || null
+            let jadwal = req.query.jadwal || null
+
+
+            console.log(nama_label)
+            if (head) {
+                heads += `and (mr.head = '${head}' or mu.id = '${me.id}')`
+            }
+            if (jadwal) {
+                absensi += `and TO_CHAR(a.jadwal, 'YYYY-MM-DD') ILIKE '%${jadwal}%'`
+            }
+            if (jadwal) {
+                daily += `and TO_CHAR(dr.jadwal, 'YYYY-MM-DD') ILIKE '%${jadwal}%'`
+            }
+
+            if (nama_label) {
+                labels += `and mrl.nama ilike '${nama_label}'`
+            }
+
+            let result = {}
+                    
+            const daily_report = await sequelize.query(`select dr.id, t.judul, mu.nama_lengkap, mr.alias, dr.deskripsi, dr."createdAt", mrl.nama, mrl.color  from daily_report dr 
+                join master_user mu on mu.id = dr.user_id 
+                join master_role mr on mr.id = mu.role_id 
+                join master_report_label mrl on mrl.id = dr.label_id 
+                join tugas t on t.id = dr.tugas_id 
+                where dr."deletedAt" isnull ${daily} ${heads} ${labels}
+                order by dr."createdAt" desc`, { type: QueryTypes.SELECT });
+
+            res
+            .status(HttpStatusCode.Ok)
+            .json(results(daily_report, HttpStatusCode.Ok))
         } catch (err) {
             console.log(err)
         err.code =

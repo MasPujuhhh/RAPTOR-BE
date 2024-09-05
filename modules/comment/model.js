@@ -21,6 +21,9 @@ const Comment = sequelize.define('comment', {
         },
         comment: {
           type: DataTypes.TEXT
+        },
+        file: {
+          type: DataTypes.STRING
         }
       }, {
         freezeTableName:true,

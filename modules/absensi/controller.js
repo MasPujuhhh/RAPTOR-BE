@@ -72,7 +72,6 @@ class AbsensiController{
                         .toBuffer();
                     }
                     
-
                     const filename = absen.id + '-' + Date.now() + '.jpg';
                         
                     let payload = {}
@@ -278,7 +277,6 @@ class AbsensiController{
         try {
             const jadwal = req.query.jadwal
             const me = req.user
-
 
             let filter = ''
             if (jadwal) {
